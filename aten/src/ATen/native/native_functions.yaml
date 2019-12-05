@@ -3668,27 +3668,27 @@
   dispatch:
     QuantizedCPU: qscheme_quant
 
-- func: fake_quantize_per_tensor_affine(Tensor self, float scale, int zero_point, int quant_min, int quant_max) -> Tensor
+- func: fake_quantize_per_tensor_affine(Tensor self, float scale, int zero_point, int quant_min, int quant_max, int rounding_method=0) -> Tensor
   use_c10_dispatcher: full
   variants: function
   dispatch:
     CPU: fake_quantize_per_tensor_affine_cpu
     CUDA: fake_quantize_per_tensor_affine_cuda
 
-- func: fake_quantize_per_tensor_affine_backward(Tensor grad, Tensor self, float scale, int zero_point, int quant_min, int quant_max) -> Tensor
+- func: fake_quantize_per_tensor_affine_backward(Tensor grad, Tensor self, float scale, int zero_point, int quant_min, int quant_max, int rounding_method) -> Tensor
   use_c10_dispatcher: full
   variants: function
   dispatch:
     CPU: fake_quantize_per_tensor_affine_backward_cpu
     CUDA: fake_quantize_per_tensor_affine_backward_cuda
 
-- func: fake_quantize_per_channel_affine(Tensor self, Tensor scale, Tensor zero_point, int axis, int quant_min, int quant_max) -> Tensor
+- func: fake_quantize_per_channel_affine(Tensor self, Tensor scale, Tensor zero_point, int axis, int quant_min, int quant_max, int rounding_method=0) -> Tensor
   variants: function
   dispatch:
     CPU: fake_quantize_per_channel_affine_cpu
     CUDA: fake_quantize_per_channel_affine_cuda
 
-- func: fake_quantize_per_channel_affine_backward(Tensor grad, Tensor self, Tensor scale, Tensor zero_point, int axis, int quant_min, int quant_max) -> Tensor
+- func: fake_quantize_per_channel_affine_backward(Tensor grad, Tensor self, Tensor scale, Tensor zero_point, int axis, int quant_min, int quant_max, int rounding_method) -> Tensor
   variants: function
   dispatch:
     CPU: fake_quantize_per_channel_affine_backward_cpu

@@ -22,9 +22,12 @@ void fake_quantize_slice_cuda(
     float scale,
     int64_t zero_point,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   float inv_scale = 1.0f / scale;
-  at::cuda::CUDA_tensor_apply2<float, float>(
+  switch(rounding_method) {
+  case 0:
+    at::cuda::CUDA_tensor_apply2<float, float>(
       input, output, [=] __device__(const float& input_val, float& result_val) {
         result_val = (fminf(
                           quant_max,
@@ -35,6 +38,72 @@ void fake_quantize_slice_cuda(
                       zero_point) *
             scale;
       });
+    break;
+  case 1:
+    at::cuda::CUDA_tensor_apply2<float, float>(
+      input, output, [=] __device__(const float& input_val, float& result_val) {
+        result_val = (fminf(
+                          quant_max,
+                          fmaxf(
+                              quant_min,
+                              static_cast<int64_t>(std::round(
+                                  input_val * inv_scale + zero_point)))) -
+                      zero_point) *
+            scale;
+      });
+    break;
+  case 2:
+    at::cuda::CUDA_tensor_apply2<float, float>(
+      input, output, [=] __device__(const float& input_val, float& result_val) {
+        result_val = (fminf(
+                          quant_max,
+                          fmaxf(
+                              quant_min,
+                              static_cast<int64_t>(std::floor(
+                                  input_val * inv_scale + zero_point)))) -
+                      zero_point) *
+            scale;
+      });
+    break;
+  case 3:
+    at::cuda::CUDA_tensor_apply2<float, float>(
+      input, output, [=] __device__(const float& input_val, float& result_val) {
+        result_val = (fminf(
+                          quant_max,
+                          fmaxf(
+                              quant_min,
+                              static_cast<int64_t>(std::ceil(
+                                  input_val * inv_scale + zero_point)))) -
+                      zero_point) *
+            scale;
+      });
+    break;
+  case 4:
+    at::cuda::CUDA_tensor_apply2<float, float>(
+      input, output, [=] __device__(const float& input_val, float& result_val) {
+        result_val = (fminf(
+                          quant_max,
+                          fmaxf(
+                              quant_min,
+                              static_cast<int64_t>(std::trunc(
+                                  input_val * inv_scale + zero_point)))) -
+                      zero_point) *
+            scale;
+      });
+    break;
+  default:
+    at::cuda::CUDA_tensor_apply2<float, float>(
+      input, output, [=] __device__(const float& input_val, float& result_val) {
+        result_val = (fminf(
+                          quant_max,
+                          fmaxf(
+                              quant_min,
+                              static_cast<int64_t>(std::nearbyint(
+                                  input_val * inv_scale + zero_point)))) -
+                      zero_point) *
+            scale;
+      });
+  }
 }
 
 void fake_quantize_grad_slice_cuda(
@@ -44,9 +113,12 @@ void fake_quantize_grad_slice_cuda(
     float scale,
     int64_t zero_point,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   float inv_scale = 1.0f / scale;
-  at::cuda::CUDA_tensor_apply3<float, float, float>(
+  switch(rounding_method) {
+  case 0:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
       output_grad,
       input,
       input_grad,
@@ -54,6 +126,57 @@ void fake_quantize_grad_slice_cuda(
         int64_t Xq = std::nearbyint(x * inv_scale + zero_point);
         dx = (Xq >= quant_min && Xq <= quant_max) * dy;
       });
+    break;
+  case 1:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
+      output_grad,
+      input,
+      input_grad,
+      [=] __device__(const float& dy, const float& x, float& dx) {
+        int64_t Xq = std::round(x * inv_scale + zero_point);
+        dx = (Xq >= quant_min && Xq <= quant_max) * dy;
+      });
+    break;
+  case 2:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
+      output_grad,
+      input,
+      input_grad,
+      [=] __device__(const float& dy, const float& x, float& dx) {
+        int64_t Xq = std::floor(x * inv_scale + zero_point);
+        dx = (Xq >= quant_min && Xq <= quant_max) * dy;
+      });
+    break;
+  case 3:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
+      output_grad,
+      input,
+      input_grad,
+      [=] __device__(const float& dy, const float& x, float& dx) {
+        int64_t Xq = std::ceil(x * inv_scale + zero_point);
+        dx = (Xq >= quant_min && Xq <= quant_max) * dy;
+      });
+    break;
+  case 4:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
+      output_grad,
+      input,
+      input_grad,
+      [=] __device__(const float& dy, const float& x, float& dx) {
+        int64_t Xq = std::trunc(x * inv_scale + zero_point);
+        dx = (Xq >= quant_min && Xq <= quant_max) * dy;
+      });
+    break;
+  default:
+    at::cuda::CUDA_tensor_apply3<float, float, float>(
+      output_grad,
+      input,
+      input_grad,
+      [=] __device__(const float& dy, const float& x, float& dx) {
+        int64_t Xq = std::nearbyint(x * inv_scale + zero_point);
+        dx = (Xq >= quant_min && Xq <= quant_max) * dy;
+      });
+  }
 }
 
 } // namespace native

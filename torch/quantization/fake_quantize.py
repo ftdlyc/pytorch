@@ -17,6 +17,14 @@ class FakeQuantize(Module):
 
     * :attr:`quant_max` specifies the maximum allowable quantized value.
 
+    * :attr:`rounding_method` specifies the rounding method used for quantization,
+                              allowable values are 0 to 4: 
+                                0: use std::nearbyint
+                                1: use std::round
+                                2: use std::floor
+                                3: use std::ceil
+                                4: use std::trunc
+
     * :attr:`fake_quant_enable` controls the application of fake quantization on tensors, note that
       statistics can still be updated.
 
@@ -32,18 +40,20 @@ class FakeQuantize(Module):
                            and zero-point.
         quant_min (int): The minimum allowable quantized value.
         quant_max (int): The maximum allowable quantized value.
+        rounding_method (int): The rounding method used for quantization.
         observer_kwargs (optional): Arguments for the observer module
 
     Attributes:
         observer (Module): User provided module that collects statistics on the input tensor and
                            provides a method to calculate scale and zero-point.
     """
-    def __init__(self, observer=MovingAverageMinMaxObserver, quant_min=0, quant_max=255, **observer_kwargs):
+    def __init__(self, observer=MovingAverageMinMaxObserver, quant_min=0, quant_max=255, rounding_method=0, **observer_kwargs):
         super(FakeQuantize, self).__init__()
         assert quant_min <= quant_max, \
             'quant_min must be less than or equal to quant_max'
         self.quant_min = quant_min
         self.quant_max = quant_max
+        self.rounding_method = rounding_method
         self.fake_quant_enabled = True
         self.observer_enabled = True
         self.observer = observer(**observer_kwargs)
@@ -79,11 +89,12 @@ class FakeQuantize(Module):
         if self.fake_quant_enabled:
             if self.qscheme == torch.per_channel_symmetric or self.qscheme == torch.per_channel_affine:
                 X = torch.fake_quantize_per_channel_affine(X, self.scale, self.zero_point,
-                                                           self.ch_axis, self.quant_min, self.quant_max)
+                                                           self.ch_axis, self.quant_min, self.quant_max, 
+                                                           self.rounding_method)
             else:
-                X = torch.fake_quantize_per_tensor_affine(X, float(self.scale),
-                                                          int(self.zero_point), self.quant_min,
-                                                          self.quant_max)
+                X = torch.fake_quantize_per_tensor_affine(X, float(self.scale), int(self.zero_point), 
+                                                          self.quant_min, self.quant_max, 
+                                                          self.rounding_method)
         return X
 
     with_args = classmethod(_with_args)

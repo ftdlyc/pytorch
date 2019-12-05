@@ -81,7 +81,7 @@ class TestFakeQuantizePerTensor(TestCase):
         X = to_tensor(X, device)
         Y = _fake_quantize_per_tensor_affine_reference(X.cpu(), scale, zero_point, quant_min, quant_max)
         Y_prime = torch.fake_quantize_per_tensor_affine(
-            X, scale, zero_point, quant_min, quant_max)
+            X, scale, zero_point, quant_min, quant_max, 0)
         np.testing.assert_allclose(Y, Y_prime.cpu(), rtol=tolerance, atol=tolerance)
 
     @no_deadline
@@ -100,7 +100,7 @@ class TestFakeQuantizePerTensor(TestCase):
         X.requires_grad_()
         Y = _fake_quantize_per_tensor_affine_reference(X.cpu(), scale, zero_point, quant_min, quant_max)
         Y_prime = torch.fake_quantize_per_tensor_affine(
-            X, scale, zero_point, quant_min, quant_max)
+            X, scale, zero_point, quant_min, quant_max, 0)
         dout = torch.rand(X.shape, dtype=torch.float).to(device)
         dX = _fake_quantize_per_tensor_affine_grad_reference(
             dout, X, scale, zero_point, quant_min, quant_max)
@@ -123,7 +123,7 @@ class TestFakeQuantizePerTensor(TestCase):
         # quantize_per_tensor and dequantize are only implemented in CPU
         Y = torch.dequantize(torch.quantize_per_tensor(X.cpu(), scale, zero_point, torch_type))
         Y_prime = torch.fake_quantize_per_tensor_affine(
-            X, scale, zero_point, quant_min, quant_max)
+            X, scale, zero_point, quant_min, quant_max, 0)
         np.testing.assert_allclose(Y, Y_prime.cpu(), rtol=tolerance, atol=tolerance)
 
     @no_deadline
@@ -225,7 +225,7 @@ class TestFakeQuantizePerChannel(TestCase):
         zero_point = torch.tensor(zero_point).to(dtype=torch.int64, device=device)
         Y = _fake_quantize_per_channel_affine_reference(X.cpu(), scale.cpu(), zero_point.cpu(), axis, quant_min, quant_max)
         Y_prime = torch.fake_quantize_per_channel_affine(
-            X, scale, zero_point, axis, quant_min, quant_max)
+            X, scale, zero_point, axis, quant_min, quant_max, 0)
         np.testing.assert_allclose(Y, Y_prime.cpu(), rtol=tolerance, atol=tolerance)
 
     @no_deadline
@@ -245,7 +245,7 @@ class TestFakeQuantizePerChannel(TestCase):
         zero_point = torch.tensor(zero_point).to(dtype=torch.int64, device=device)
         X.requires_grad_()
         Y_prime = torch.fake_quantize_per_channel_affine(
-            X, scale, zero_point, axis, quant_min, quant_max)
+            X, scale, zero_point, axis, quant_min, quant_max, 0)
         dout = torch.rand(X.shape, dtype=torch.float).to(device)
         dX = _fake_quantize_per_channel_affine_grad_reference(
             dout, X, scale, zero_point, axis, quant_min, quant_max)
@@ -270,7 +270,7 @@ class TestFakeQuantizePerChannel(TestCase):
         # quantize_linear and dequantize are only implemented in CPU
         Y = torch.dequantize(torch.quantize_per_channel(X.cpu(), scale.cpu(), zero_point.cpu(), axis, torch_type))
         Y_prime = torch.fake_quantize_per_channel_affine(
-            X, scale, zero_point, axis, quant_min, quant_max)
+            X, scale, zero_point, axis, quant_min, quant_max, 0)
         np.testing.assert_allclose(Y, Y_prime.cpu(), rtol=tolerance, atol=tolerance)
 
     @no_deadline

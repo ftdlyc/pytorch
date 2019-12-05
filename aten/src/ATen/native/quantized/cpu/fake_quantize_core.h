@@ -12,7 +12,8 @@ void fake_quantize_slice(
     float sc,
     int64_t z_point,
     int64_t quant_min,
-    int64_t quant_max);
+    int64_t quant_max,
+    int64_t rounding_method);
 
 void fake_quantize_grad_slice(
     Tensor& input_grad,
@@ -21,7 +22,8 @@ void fake_quantize_grad_slice(
     float sc,
     int64_t z_point,
     int64_t quant_min,
-    int64_t quant_max);
+    int64_t quant_max,
+    int64_t rounding_method);
 
 } // namespace native
 } // namespace at

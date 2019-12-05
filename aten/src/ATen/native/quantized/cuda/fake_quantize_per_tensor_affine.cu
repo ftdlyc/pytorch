@@ -23,7 +23,8 @@ Tensor fake_quantize_per_tensor_affine_cuda(
     double scale,
     int64_t zero_point,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   TORCH_CHECK(self.is_cuda());
   TORCH_CHECK(self.scalar_type() == ScalarType::Float);
   TORCH_CHECK(
@@ -33,8 +34,11 @@ Tensor fake_quantize_per_tensor_affine_cuda(
   TORCH_CHECK(
       zero_point >= quant_min && zero_point <= quant_max,
       "`zero_point` must be between `quant_min` and `quant_max`.");
+  TORCH_CHECK(
+      rounding_method >= 0 && rounding_method <= 4,
+      "`rounding_method` must be between 0 and 4");
   auto Y = at::empty_like(self, self.options(), MemoryFormat::Preserve);
-  fake_quantize_slice_cuda(Y, self, scale, zero_point, quant_min, quant_max);
+  fake_quantize_slice_cuda(Y, self, scale, zero_point, quant_min, quant_max, rounding_method);
   return Y;
 }
 
@@ -56,7 +60,8 @@ Tensor fake_quantize_per_tensor_affine_backward_cuda(
     double scale,
     int64_t zero_point,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   TORCH_CHECK(dY.is_cuda());
   TORCH_CHECK(dY.scalar_type() == ScalarType::Float);
   TORCH_CHECK(X.is_cuda());
@@ -69,13 +74,16 @@ Tensor fake_quantize_per_tensor_affine_backward_cuda(
   TORCH_CHECK(
       zero_point >= quant_min && zero_point <= quant_max,
       "`zero_point` must be between `quant_min` and `quant_max`.");
+  TORCH_CHECK(
+      rounding_method >= 0 && rounding_method <= 4,
+      "`rounding_method` must be between 0 and 4");
   if (X.numel() <= 0) {
     return X;
   }
 
   auto dX = at::empty_like(X, X.options(), MemoryFormat::Preserve);
   fake_quantize_grad_slice_cuda(
-      dX, X, dY, scale, zero_point, quant_min, quant_max);
+      dX, X, dY, scale, zero_point, quant_min, quant_max, rounding_method);
   return dX;
 }
 

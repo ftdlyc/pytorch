@@ -61,6 +61,7 @@ class ConvBn2d(nn.Conv2d):
         self.register_buffer('num_batches_tracked', torch.tensor(0, dtype=torch.long))
         self.observer = self.qconfig.activation()
         self.weight_fake_quant = self.qconfig.weight()
+        self.bias_fake_quant = self.qconfig.weight()
         self.reset_bn_parameters()
 
     def reset_running_stats(self):
@@ -131,7 +132,7 @@ class ConvBn2d(nn.Conv2d):
             self.running_var = exponential_average_factor * unbiased_batch_var.detach() + \
                 (1 - exponential_average_factor) * self.running_var
         else:
-            conv = conv + (self.beta - self.gamma * self.running_mean /
+            conv = conv + self.bias_fake_quant(self.beta - self.gamma * self.running_mean /
                            running_std).reshape([1, -1, 1, 1])
         return conv
 

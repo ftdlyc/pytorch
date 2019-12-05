@@ -28,7 +28,8 @@ Tensor fake_quantize_per_channel_affine_cpu(
     const Tensor& zero_point,
     int64_t axis,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   // TODO: Use REGISTER_DISPATCH
   TORCH_CHECK(self.scalar_type() == ScalarType::Float);
   TORCH_CHECK(
@@ -56,6 +57,10 @@ Tensor fake_quantize_per_channel_affine_cpu(
       axis >= 0 && axis <= self.dim(),
       "`axis` must be between 0 and number of dimensions of input");
 
+  TORCH_CHECK(
+      rounding_method >= 0 && rounding_method <= 4,
+      "`rounding_method` must be between 0 and 4");
+
   auto Y = at::empty_like(self, self.options(), MemoryFormat::Preserve);
   for (int i = 0; i < self.size(axis); i++) {
     auto input_slice = self.slice(axis, i, i + 1);
@@ -63,7 +68,7 @@ Tensor fake_quantize_per_channel_affine_cpu(
     float sc = scale[i].item().toFloat();
     int64_t z_point = zero_point[i].item().toLong();
     fake_quantize_slice(
-        output_slice, input_slice, sc, z_point, quant_min, quant_max);
+        output_slice, input_slice, sc, z_point, quant_min, quant_max, rounding_method);
   }
 
   return Y;
@@ -91,7 +96,8 @@ Tensor fake_quantize_per_channel_affine_backward_cpu(
     const Tensor& zero_point,
     int64_t axis,
     int64_t quant_min,
-    int64_t quant_max) {
+    int64_t quant_max,
+    int64_t rounding_method) {
   TORCH_CHECK(dY.scalar_type() == ScalarType::Float);
   TORCH_CHECK(X.scalar_type() == ScalarType::Float);
 
@@ -125,6 +131,10 @@ Tensor fake_quantize_per_channel_affine_backward_cpu(
       axis >= 0 && axis <= X.dim(),
       "`axis` must be between 0 and number of dimensions of input");
 
+  TORCH_CHECK(
+      rounding_method >= 0 && rounding_method <= 4,
+      "`rounding_method` must be between 0 and 4");
+
   if (X.numel() <= 0) {
     return X;
   }
@@ -138,7 +148,7 @@ Tensor fake_quantize_per_channel_affine_backward_cpu(
     float sc = scale[i].item().toFloat();
     int64_t z_point = zero_point[i].item().toLong();
     fake_quantize_grad_slice(dX_slice, X_slice, dY_slice,
-                             sc, z_point, quant_min, quant_max);
+                             sc, z_point, quant_min, quant_max, rounding_method);
   }
 
   return dX;

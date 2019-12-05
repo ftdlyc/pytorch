@@ -31,10 +31,28 @@ class Conv2d(NNConv2d):
         self.qconfig = qconfig
         self.observer = qconfig.activation()
         self.weight_fake_quant = qconfig.weight()
+        if bias:
+            self.bias_fake_quant = self.qconfig.weight()
+        else:
+            self.bias_fake_quant = None
+
+    def conv2d_forward(self, input, weight, bias):
+        if self.padding_mode == 'circular':
+            expanded_padding = ((self.padding[1] + 1) // 2, self.padding[1] // 2,
+                                (self.padding[0] + 1) // 2, self.padding[0] // 2)
+            return F.conv2d(F.pad(input, expanded_padding, mode='circular'),
+                            weight, bias, self.stride,
+                            _pair(0), self.dilation, self.groups)
+        return F.conv2d(input, weight, bias, self.stride,
+                        self.padding, self.dilation, self.groups)
 
     def forward(self, input):
-        return self.observer(
-            self.conv2d_forward(input, self.weight_fake_quant(self.weight)))
+        if self.bias_fake_quant is not None:
+            return self.observer(
+                self.conv2d_forward(input, self.weight_fake_quant(self.weight), self.bias_fake_quant(self.bias)))
+        else:
+            return self.observer(
+                self.conv2d_forward(input, self.weight_fake_quant(self.weight), self.bias))
 
     @classmethod
     def from_float(cls, mod, qconfig=None):
